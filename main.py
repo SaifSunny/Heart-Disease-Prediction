@@ -47,7 +47,7 @@ st.write(''' ''')
 sp = st.radio("The Slope of the Peak Exercise ST Segment", ('Upsloping', 'Flat', 'Downsloping'))
 st.write(''' ''')
 
-selected_models = st.multiselect("Choose Classifier Models", ('Random Forest', 'Naïve Bayes', 'Logistic Regression', 'K-Nearest Neighbors', 'Decision Tree', 'Gradient Boosting', 'LightGBM', 'XGBoost', 'Multilayer Perceptron', 'Artificial Neural Network', 'Support Vector Machine','Ensamble of Top 3 Models'))
+selected_models = st.multiselect("Choose Classifier Models", ('Random Forest', 'Naïve Bayes', 'Logistic Regression', 'K-Nearest Neighbors', 'Decision Tree', 'Gradient Boosting', 'LightGBM', 'XGBoost', 'Multilayer Perceptron', 'Artificial Neural Network', 'Support Vector Machine'))
 st.write(''' ''')
 
 # Initialize an empty list to store the selected models
@@ -87,8 +87,7 @@ if 'Multilayer Perceptron' in selected_models:
 if 'Artificial Neural Network' in selected_models:
     models_to_run.append(MLPClassifier(hidden_layer_sizes=(100,), max_iter=100))
 
-if 'Ensamble of Top 3 Models' in selected_models:
-    models_to_run.append(VotingClassifier(estimators=[('rf', RandomForestClassifier()), ('xgb', XGBClassifier()), ('gb', LGBMClassifier())],voting='hard'))
+
 
 # gender conversion
 if gen == "Male":
@@ -170,26 +169,66 @@ if st.button('Submit'):
     y = df['target']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    for model in models_to_run:
-        # Train the selected model
-        model.fit(X_train, y_train)
+    # Create two columns to divide the screen
+    left_column, right_column = st.columns(2)
+
+
+    # Left column content
+    with left_column:
+        # Create a VotingClassifier with the top 3 models
+        ensemble = VotingClassifier(
+            estimators=[('rf', RandomForestClassifier()), ('xgb', XGBClassifier()), ('gb', LGBMClassifier())],
+            voting='hard')
+
+        # Fit the voting classifier to the training data
+        ensemble.fit(X_train, y_train)
 
         # Make predictions on the test set
-        model_predictions = model.predict(user_input)
+        model_predictions = ensemble.predict(user_input)
 
         # Evaluate the model's performance on the test set
-        model_accuracy = accuracy_score(y_test, model.predict(X_test))
-        model_precision = precision_score(y_test, model.predict(X_test))
-        model_recall = recall_score(y_test, model.predict(X_test))
-        model_f1score = f1_score(y_test, model.predict(X_test))
+        model_accuracy = accuracy_score(y_test, ensemble.predict(X_test))
+        model_precision = precision_score(y_test, ensemble.predict(X_test))
+        model_recall = recall_score(y_test, ensemble.predict(X_test))
+        model_f1score = f1_score(y_test, ensemble.predict(X_test))
 
         if model_predictions == 1:
-            st.write(f'According to {type(model).__name__} Model You have a **Very High Chance (1)** of Heart Disease.')
+            st.write(f'According to Ensemble Model You have a **Very High Chance (1)** of Heart Disease.')
         else:
-            st.write(f'According to {type(model).__name__} Model You have a **Very Low Chance (0)** of Heart Disease.')
+            st.write(f'According to Ensemble Model You have a **Very Low Chance (0)** of Heart Disease.')
 
-        st.write(f'{type(model).__name__} Accuracy:', model_accuracy)
-        st.write(f'{type(model).__name__} Precision:', model_precision)
-        st.write(f'{type(model).__name__} Recall:', model_recall)
-        st.write(f'{type(model).__name__} F1 Score:', model_f1score)
+        st.write('Ensemble Model Accuracy:', model_accuracy)
+        st.write('Ensemble Model Precision:', model_precision)
+        st.write('Ensemble Model Recall:', model_recall)
+        st.write('Ensemble Model F1 Score:', model_f1score)
         st.write('------------------------------------------------------------------------------------------------------')
+
+    # Add padding between the columns
+    st.empty()
+
+    # Right column content
+    with right_column:
+
+        for model in models_to_run:
+            # Train the selected model
+            model.fit(X_train, y_train)
+
+            # Make predictions on the test set
+            model_predictions = model.predict(user_input)
+
+            # Evaluate the model's performance on the test set
+            model_accuracy = accuracy_score(y_test, model.predict(X_test))
+            model_precision = precision_score(y_test, model.predict(X_test))
+            model_recall = recall_score(y_test, model.predict(X_test))
+            model_f1score = f1_score(y_test, model.predict(X_test))
+
+            if model_predictions == 1:
+                st.write(f'According to {type(model).__name__} Model You have a **Very High Chance (1)** of Heart Disease.')
+            else:
+                st.write(f'According to {type(model).__name__} Model You have a **Very Low Chance (0)** of Heart Disease.')
+
+            st.write(f'{type(model).__name__} Accuracy:', model_accuracy)
+            st.write(f'{type(model).__name__} Precision:', model_precision)
+            st.write(f'{type(model).__name__} Recall:', model_recall)
+            st.write(f'{type(model).__name__} F1 Score:', model_f1score)
+            st.write('------------------------------------------------------------------------------------------------------')
