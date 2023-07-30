@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -156,6 +158,19 @@ def get_dataset():
 
     return data
 
+def generate_model_labels(model_names):
+    model_labels = []
+    for name in model_names:
+        words = name.split()
+        if len(words) > 1:
+            # Multiple words, use initials
+            label = "".join(word[0] for word in words)
+        else:
+            # Single word, take the first 3 letters
+            label = name[:3]
+        model_labels.append(label)
+    return model_labels
+
 if st.button('Submit'):
     df = get_dataset()
 
@@ -187,20 +202,20 @@ if st.button('Submit'):
         model_predictions = ensemble.predict(user_input)
 
         # Evaluate the model's performance on the test set
-        model_accuracy = accuracy_score(y_test, ensemble.predict(X_test))
-        model_precision = precision_score(y_test, ensemble.predict(X_test))
-        model_recall = recall_score(y_test, ensemble.predict(X_test))
-        model_f1score = f1_score(y_test, ensemble.predict(X_test))
+        ensamble_accuracy = accuracy_score(y_test, ensemble.predict(X_test))
+        ensamble_precision = precision_score(y_test, ensemble.predict(X_test))
+        ensamble_recall = recall_score(y_test, ensemble.predict(X_test))
+        ensamble_f1score = f1_score(y_test, ensemble.predict(X_test))
 
         if model_predictions == 1:
             st.write(f'According to Ensemble Model You have a **Very High Chance (1)** of Heart Disease.')
         else:
             st.write(f'According to Ensemble Model You have a **Very Low Chance (0)** of Heart Disease.')
 
-        st.write('Ensemble Model Accuracy:', model_accuracy)
-        st.write('Ensemble Model Precision:', model_precision)
-        st.write('Ensemble Model Recall:', model_recall)
-        st.write('Ensemble Model F1 Score:', model_f1score)
+        st.write('Ensemble Model Accuracy:', ensamble_accuracy)
+        st.write('Ensemble Model Precision:', ensamble_precision)
+        st.write('Ensemble Model Recall:', ensamble_recall)
+        st.write('Ensemble Model F1 Score:', ensamble_f1score)
         st.write('------------------------------------------------------------------------------------------------------')
 
     # Add padding between the columns
@@ -232,3 +247,65 @@ if st.button('Submit'):
             st.write(f'{type(model).__name__} Recall:', model_recall)
             st.write(f'{type(model).__name__} F1 Score:', model_f1score)
             st.write('------------------------------------------------------------------------------------------------------')
+
+    # Initialize lists to store model names and their respective performance metrics
+    model_names = ['Ensemble']
+    accuracies = [ensamble_accuracy]
+    precisions = [ensamble_precision]
+    recalls = [ensamble_recall]
+    f1_scores = [ensamble_f1score]
+
+    # Loop through the selected models to compute their performance metrics
+    for model in models_to_run:
+        model_names.append(type(model).__name__)
+        model.fit(X_train, y_train)
+        model_predictions = model.predict(X_test)
+        accuracies.append(accuracy_score(y_test, model_predictions))
+        precisions.append(precision_score(y_test, model_predictions))
+        recalls.append(recall_score(y_test, model_predictions))
+        f1_scores.append(f1_score(y_test, model_predictions))
+
+    # Create a DataFrame to store the performance metrics
+    metrics_df = pd.DataFrame({
+        'Model': model_names,
+        'Accuracy': accuracies,
+        'Precision': precisions,
+        'Recall': recalls,
+        'F1 Score': f1_scores
+    })
+
+    # Get the model labels
+    model_labels = generate_model_labels(metrics_df['Model'])
+
+    # Plot the comparison graphs
+    plt.figure(figsize=(12, 10))
+
+    # Accuracy comparison
+    plt.subplot(2, 2, 1)
+    plt.bar(model_labels, metrics_df['Accuracy'], color='skyblue')
+    plt.title('Accuracy Comparison')
+    plt.ylim(0, 1)
+
+    # Precision comparison
+    plt.subplot(2, 2, 2)
+    plt.bar(model_labels, metrics_df['Precision'], color='orange')
+    plt.title('Precision Comparison')
+    plt.ylim(0, 1)
+
+    # Recall comparison
+    plt.subplot(2, 2, 3)
+    plt.bar(model_labels, metrics_df['Recall'], color='green')
+    plt.title('Recall Comparison')
+    plt.ylim(0, 1)
+
+    # F1 Score comparison
+    plt.subplot(2, 2, 4)
+    plt.bar(model_labels, metrics_df['F1 Score'], color='purple')
+    plt.title('F1 Score Comparison')
+    plt.ylim(0, 1)
+
+    # Adjust layout to prevent overlapping of titles
+    plt.tight_layout()
+
+    # Display the graphs in Streamlit
+    st.pyplot()
