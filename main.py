@@ -218,9 +218,6 @@ if st.button('Submit'):
         st.write('Ensemble Model F1 Score:', ensamble_f1score)
         st.write('------------------------------------------------------------------------------------------------------')
 
-    # Add padding between the columns
-    st.empty()
-
     # Right column content
     with right_column:
 
